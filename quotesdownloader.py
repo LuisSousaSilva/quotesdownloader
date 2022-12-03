@@ -82,54 +82,54 @@ def download_ms(MSids, nomes, key):
     
     return fundos
 
-def search_investing_etf(isins=False, tickers=False, visual=''):
-    etfs = investpy.get_etfs()
-    
-    if isins:
-        for isin in isins:
-            if visual=='jupyter':
-                display(etfs.loc[etfs['isin'] == isin.upper()][['symbol', 'isin', 'stock_exchange', 'currency', 'name', 'country']])
-            else:
-                print(etfs.loc[etfs['isin'] == isin.upper()][['symbol', 'isin', 'stock_exchange', 'currency', 'name', 'country']])
-    
-    elif tickers:
-        for ticker in tickers:
-            if visual=='jupyter':
-                display(etfs.loc[etfs['symbol'] == ticker.upper()].sort_values(by='def_stock_exchange', ascending=False)[['symbol', 'isin', 'stock_exchange', 'currency', 'name', 'country']])
-            else:
-                print(etfs.loc[etfs['symbol'] == ticker.upper()].sort_values(by='def_stock_exchange', ascending=False)[['symbol', 'isin', 'stock_exchange', 'currency', 'name', 'country']])
-                
-    else:
-        print('Something went wrong with the function inputs')
+# Criação da função para ler múltiplos ficheiros do investing.com. Inclui opção de começo e fim da análise.
+def read_csv_investing(tickers, start='1900-01-01', stop='2100-01-01'):
+    ETFs = pd.DataFrame()
 
-def get_quotes_investing_etf(names, countries, colnames='',
-                             begin='1990-01-01', end='2025-01-01',
-                             merge='inner',growth_index=False):    
-    begin = pd.to_datetime(begin).strftime('%d/%m/%Y')
-    end = pd.to_datetime(end).strftime('%d/%m/%Y')
-    iteration = 0
-                         
-    for i in range(len(names)):
-        iteration += 1
-        etf = investpy.get_etf_historical_data(etf=names[i],
-                                              from_date=begin,
-                                              to_date=end,
-                                              country=countries[i])[['Close']]
-        if iteration == 1:
-            etfs = etf.copy()
+    # Para cada valor na variável tickers
+    for ticker in tickers:
+        # Ler o ficheiro .csv correspondente, ler as datas e seleccionar só a coluna de preços
+        ETF = pd.read_csv(ticker + ' Historical Data.csv', index_col='Date', parse_dates=True)[['Price']]
+        # Dar o nome do ticker à coluna para depois podermos distinguir na DataFrame
+        ETF.columns = [ticker]
+        # Usar a função merge_time_series usando a opção outer (quando são muitos ETFs aconselho
+        # sempre a função outer para não ir "perdendo" demasiadas cotações simplesmente porque há
+        # um ETF sem cotação nesse dia). Por outro lado a função dropna() força a começarem e 
+        # acabarem no mesmo dia (para serem efectivamente comparáveis)
+        ETFs = merge_time_series(ETFs, ETF, how='outer').dropna()
+
+    # Ordenar as datas para que sejam ascendentes
+    ETFs = ETFs.sort_index(ascending=True)
+    
+    # Acrescentar função de "cortar" a série temporal que por defeito está desde 1900 até 2100, 
+    # o que basicamente é um "atalho" para dizer que não pretendo cortar pois esse periodo deverão
+    # apanhar quaisquer datas para as quais há ETFs do investing
+    ETFs = ETFs[start:stop]
+
+    return ETFs
+
+def read_xls_MSCI(tickers, nomes, start='1990', end='2100'):
+    MSCIs = pd.DataFrame()
         
-        else:
-            etfs = merge_time_series(etfs, etf, how=merge)
+    for ticker in tickers:
+        # Read relevant information
+        MSCI = pd.read_excel(ticker + '.xlsx').iloc[6:].dropna()
+        # Rename columns
+        MSCI.columns = ['Date', 'Price']
+        # Convert the date column to datetime
+        MSCI['Date'] = pd.to_datetime(MSCI['Date'])
+        # Set date column as index
+        MSCI.set_index('Date', inplace=True)
+        # Merge
+        MSCIs = merge_time_series(MSCIs, MSCI, how='outer').dropna()
+        # Start / End
+        MSCIs = MSCIs[start:end]
+        # Growth Index
+        MSCIs = compute_growth_index(MSCIs)
         
-    if colnames:
-        etfs.columns = colnames
-    else:
-        etfs.columns = names
-        
-    if growth_index:
-        etfs = compute_growth_index(etfs)
-        
-    return etfs
+    MSCIs.columns = nomes
+    
+    return MSCIs
 
 def read_xlsx_MSCI(file_name, nomes):
         
