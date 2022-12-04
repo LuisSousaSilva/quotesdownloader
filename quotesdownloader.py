@@ -1,6 +1,4 @@
 import pandas as pd
-import investpy
-import yfinance as yf
 import string
 import random
 
@@ -96,7 +94,7 @@ def read_csv_investing(tickers, start='1900-01-01', stop='2100-01-01'):
         # sempre a função outer para não ir "perdendo" demasiadas cotações simplesmente porque há
         # um ETF sem cotação nesse dia). Por outro lado a função dropna() força a começarem e 
         # acabarem no mesmo dia (para serem efectivamente comparáveis)
-        ETFs = merge_time_series(ETFs, ETF, how='outer').dropna()
+        ETFs = merge_time_series(ETFs, ETF, how='outer')
 
     # Ordenar as datas para que sejam ascendentes
     ETFs = ETFs.sort_index(ascending=True)
