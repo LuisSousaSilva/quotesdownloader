@@ -1,6 +1,9 @@
 import pandas as pd
 import string
 import random
+import numpy as np
+import random
+import time
 
 def get_random_string(length):
     # choose from all lowercase letter
@@ -67,17 +70,19 @@ def download_ms(MSids, nomes, key):
     fundos = pd.DataFrame()
 
     # Download
-    for MSid in MSids:
+    for i in np.arange(len(MSids)):
         try:
-            url = "https://lt.morningstar.com/api/rest.svc/timeseries_price/" + key + "?id=" + str(MSid) + "&currencyId=BAS&idtype=Morningstar&frequency=daily&startDate=" + Begin + "&outputType=CSV"
+            url = "https://lt.morningstar.com/api/rest.svc/timeseries_price/" + key + "?id=" + MSids[i] + "&currencyId=BAS&idtype=Morningstar&frequency=daily&startDate=" + Begin + "&outputType=CSV"
             fundo = pd.read_csv(url, sep = ";" , index_col = 'date', parse_dates = True)
             fundo =  fundo.drop('Unnamed: 2', axis=1)
+            fundo.columns = [nomes[i]]
             fundos = fundos.merge(fundo, left_index = True, right_index = True, how='outer')
         except:
-            print('Download of fund ' + MSid + ' failed')
+            print('Download of fund ' + MSids[i] + ' failed')
+        
+        time.sleep(random.uniform(1, 2)) # Sleep for 1 to 2 seconds
 
-    fundos.columns = nomes
-    
+    fundos.index.name = 'Date'
     return fundos
 
 # Criação da função para ler múltiplos ficheiros do investing.com. Inclui opção de começo e fim da análise.
