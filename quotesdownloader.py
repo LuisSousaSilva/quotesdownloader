@@ -4,6 +4,7 @@ import random
 import numpy as np
 import random
 import time
+import yfinance as yf
 
 def get_random_string(length):
     # choose from all lowercase letter
@@ -146,7 +147,7 @@ def download_yahoo_data(tickers, normalize_quotes=True,
                       start='1970-01-01', end='2030-12-31'):
     quotes=pd.DataFrame()
     for ticker in tickers:
-        # df = yf.download(ticker, start=start, end=end, progress=False)
+        df = yf.download(ticker, start=start, end=end, progress=False)
         df = df[['Adj Close']]
         df.columns=[ticker]
         quotes = merge_time_series(quotes, df)
